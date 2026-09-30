@@ -1,6 +1,12 @@
 // Single source of content. Everything here comes from the résumé, the portfolio PRD and the
 // live sites themselves. Do not add metrics, clients, users or features that were not built.
 
+// Disclaimers shown wherever these projects appear.
+export const notes = {
+  bbc: 'Not sold. Made professionally for a campaign.',
+  nacl: 'Still under development, in talks with the client.',
+}
+
 export const links = {
   github: 'https://github.com/vatsaltank28',
   linkedin: 'https://www.linkedin.com/in/vatsal-tank-979a4328b',
@@ -12,7 +18,7 @@ export const links = {
 }
 
 export const proof = [
-  { k: 'Build', body: 'Full-stack apps, interactive websites and realtime products.', shot: '/shots/nacl.webp' },
+  { k: 'Build', body: 'Full-stack apps, interactive websites and realtime products.', shot: '/shots/hd/nacl.webp' },
   { k: 'Design', body: 'UI/UX, Figma, interaction and visual systems.' },
   { k: 'Explore', body: 'AI tools, 3D on the web and product experiments.' },
   { k: 'Ship', body: 'Live on Netlify, GitHub Pages and a real client domain.', video: '/media/mixculturepizzeria-loop.mp4', shot: '/media/mixculturepizzeria.jpg' },
@@ -60,10 +66,11 @@ export const projects = [
     usage: ["Pick a city hub: Bangalore, Mumbai or Coimbatore", "Browse curated movement experiences", "Book a pass and pay securely with Stripe", "Find it later under My Passes", "Get event alerts and join the WhatsApp community"],
     title: 'NaCl',
     kicker: 'Movement community platform',
-    status: 'Live, in progress',
+    status: 'In development',
+    note: notes.nacl,
     category: 'Full Stack',
     color: '#ff6a3d',
-    shot: '/shots/nacl.webp',
+    shot: '/shots/hd/nacl.webp',
     summary: 'A community hub for curated movement experiences across Bangalore, Mumbai and Coimbatore.',
     tech: ['Next.js 15', 'TypeScript', 'React', 'Tailwind CSS', 'MongoDB', 'Mongoose', 'NextAuth', 'JWT', 'Stripe', 'Supabase', 'Three.js', 'React Three Fiber', 'GSAP'],
     role: 'Building the platform full stack: auth, data, payments, admin tooling and the interactive front end.',
@@ -96,7 +103,7 @@ export const projects = [
     status: 'Live, client',
     category: 'Client',
     color: '#e8412c',
-    shot: '/shots/mixculture.webp',
+    shot: '/shots/hd/mixculture.webp',
     video: '/media/mixculturepizzeria.mp4',
     loop: '/media/mixculturepizzeria-loop.mp4',
     poster: '/media/mixculturepizzeria.jpg',
@@ -125,7 +132,7 @@ export const projects = [
     status: 'Live prototype',
     category: 'AI',
     color: '#19c37d',
-    shot: '/shots/attendance.webp',
+    shot: '/shots/hd/attendance.webp',
     summary: 'Digitize paper attendance sheets with AI, mark a lecture fast and export formatted Excel reports.',
     tech: ['React', 'Google AI Studio', 'Gemini', 'Excel export'],
     role: 'Designed and built the app.',
@@ -186,21 +193,21 @@ export const projects = [
 
 // Live sites shown as full-bleed screenshots in the "on the web" gallery.
 export const liveWork = [
-  { t: 'NaCl Collective', d: 'Movement community, bookings and city hubs', shot: '/shots/nacl.webp', url: 'https://naclcollective.netlify.app/', slug: 'nacl' },
-  { t: 'MixCulture Pizzeria', d: 'Client website, live in Mumbai', shot: '/shots/mixculture.webp', loop: '/media/mixculturepizzeria-loop.mp4', url: 'https://mixculturepizzeria.com/', slug: 'mixculture' },
-  { t: 'SmartAttendance', d: 'AI roster digitization and Excel reports', shot: '/shots/attendance.webp', url: 'https://smartattendance101.netlify.app/', slug: 'smartattendance' },
-  { t: 'AI Segregator', d: 'Excel approval segregator, fully client-side', shot: '/shots/segregator.webp', url: 'https://ai-seggregator.vercel.app/', usage: ['Upload any Excel or CSV sheet', 'It detects names, phone numbers and approval status', 'Bulk-edit rows by type', 'Export a clean, colour-coded Excel file'] },
-  { t: 'British Brewing Co.', d: 'Hospitality website concept, Lower Parel', shot: '/shots/bbc.webp', url: 'https://vatsaltank28.github.io/British-Brewing-Company/', gallery: ['/shots/g/bbc-1.webp', '/shots/g/bbc-3.webp', '/shots/g/bbc-4.webp', '/shots/g/bbc-5.webp'] },
+  { t: 'NaCl Collective', d: 'Movement community, bookings and city hubs', shot: '/shots/hd/nacl.webp', url: 'https://naclcollective.netlify.app/', slug: 'nacl', note: notes.nacl },
+  { t: 'MixCulture Pizzeria', d: 'Client website, live in Mumbai', shot: '/shots/hd/mixculture.webp', loop: '/media/mixculturepizzeria-loop.mp4', url: 'https://mixculturepizzeria.com/', slug: 'mixculture' },
+  { t: 'SmartAttendance', d: 'AI roster digitization and Excel reports', shot: '/shots/hd/attendance.webp', url: 'https://smartattendance101.netlify.app/', slug: 'smartattendance' },
+  { t: 'AI Segregator', d: 'Excel approval segregator, fully client-side', shot: '/shots/hd/segregator.webp', url: 'https://ai-seggregator.vercel.app/', usage: ['Upload any Excel or CSV sheet', 'It detects names, phone numbers and approval status', 'Bulk-edit rows by type', 'Export a clean, colour-coded Excel file'] },
+  { t: 'British Brewing Co.', d: 'Hospitality website concept, Lower Parel', note: notes.bbc, shot: '/shots/hd/bbc.webp', url: 'https://vatsaltank28.github.io/British-Brewing-Company/', gallery: ['/shots/g/bbc-1.webp', '/shots/g/bbc-3.webp', '/shots/g/bbc-4.webp', '/shots/g/bbc-5.webp'] },
 ]
 
 export const archive = [
   { t: 'LiveVote', c: 'Full Stack', s: 'Product' },
-  { t: 'NaCl Collective', c: 'Full Stack', s: 'Live', url: 'https://naclcollective.netlify.app/' },
+  { t: 'NaCl Collective', c: 'Full Stack', s: 'In development', note: notes.nacl, url: 'https://naclcollective.netlify.app/' },
   { t: 'SmartAttendance', c: 'AI', s: 'Live', url: 'https://smartattendance101.netlify.app/' },
   { t: 'Debrief', c: 'AI', s: 'Prototype' },
   { t: 'AgriNova AI', c: 'AI', s: 'Prototype' },
   { t: 'MixCulture Pizzeria', c: 'Client', s: 'Live', url: 'https://mixculturepizzeria.com/' },
-  { t: 'British Brewing Company', c: 'Web', s: 'Concept', url: 'https://vatsaltank28.github.io/British-Brewing-Company/' },
+  { t: 'British Brewing Company', c: 'Web', s: 'Campaign', note: notes.bbc, url: 'https://vatsaltank28.github.io/British-Brewing-Company/' },
   { t: 'AI Segregator', c: 'AI', s: 'Live', url: 'https://ai-seggregator.vercel.app/' },
   { t: 'AR Product Viewer', c: 'Experimental', s: 'Experiment', url: 'https://ar-product-viewer--vatsaltank28.replit.app/' },
   { t: 'Echoverse Lyrics', c: 'Creative', s: 'Instagram', url: 'https://www.instagram.com/_echoverse.lyrics' },
@@ -227,9 +234,9 @@ export const journey = [
   { t: 'First websites', d: 'Tribute pages and HTML/CSS experiments', tag: 'HTML · CSS' },
   { t: 'Frontend experiments', d: 'Interaction, layout and CSS craft', tag: 'Layout · Motion' },
   { t: 'Python and DSA', d: 'Inventory and Library Management Systems', tag: 'Python · SQLite' },
-  { t: 'Client work', d: 'MixCulture Pizzeria goes live', tag: 'Live client', img: '/shots/mixculture.webp' },
+  { t: 'Client work', d: 'MixCulture Pizzeria goes live', tag: 'Live client', img: '/shots/hd/mixculture.webp' },
   { t: 'Product prototypes', d: 'Debrief, AgriNova AI, NACL prototypes', tag: 'AI · Product' },
-  { t: 'Full-stack platforms', d: 'NaCl Collective', tag: 'Next.js · Stripe', img: '/shots/nacl.webp' },
+  { t: 'Full-stack platforms', d: 'NaCl Collective, in development with the client', tag: 'Next.js · Stripe', img: '/shots/hd/nacl.webp' },
   { t: 'Realtime and AI', d: 'LiveVote and SmartAttendance', tag: 'Supabase · Gemini', img: '/media/livevote.jpg' },
   { t: 'Now', d: 'Still shipping, still iterating', tag: 'In progress' },
 ]
@@ -247,7 +254,7 @@ export const repos = [
   { n: 'Nacl_community_stories', u: 'https://github.com/vatsaltank28/Nacl_community_stories', d: 'NaCl Collective platform: Next.js, Stripe, MongoDB' },
   { n: 'Inventory_Management_System', u: 'https://github.com/vatsaltank28/Inventory_Management_System', d: 'PyQt6 + SQLite, built on classic data structures' },
   { n: 'library_management_system', u: 'https://github.com/vatsaltank28/library_management_system', d: 'Python library system, DSA practice' },
-  { n: 'British-Brewing-Company', u: 'https://github.com/vatsaltank28/British-Brewing-Company', d: 'Hospitality website concept, live on GitHub Pages' },
+  { n: 'British-Brewing-Company', u: 'https://github.com/vatsaltank28/British-Brewing-Company', d: 'Hospitality website concept for a campaign. Not sold.' },
   { n: 'All 30 repositories', u: 'https://github.com/vatsaltank28', d: 'Everything else on my GitHub profile' },
 ]
 

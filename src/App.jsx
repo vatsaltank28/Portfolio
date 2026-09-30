@@ -3,6 +3,7 @@ import Home from './Home.jsx'
 import CaseStudy from './CaseStudy.jsx'
 import AboutPage from './AboutPage.jsx'
 import ClickSpark from './components/ClickSpark.jsx'
+import InkCursor from './components/InkCursor.jsx'
 
 // Hash routes: '#/work/<slug>' opens a case study, '#/about' the about page, anything else is home.
 const readRoute = () => {
@@ -56,6 +57,7 @@ export default function App() {
 
   return (
     <ClickSpark sparkColor="#c6ff3d" sparkSize={11} sparkRadius={22} sparkCount={9} duration={450}>
+      <InkCursor />
       {loading && <Loader onDone={() => setLoading(false)} />}
       {slug === 'about' ? (
         <AboutPage onBack={() => back('about')} />

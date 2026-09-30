@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import FlexCarousel from './components/FlexCarousel.jsx'
+import AccordionGallery from './components/AccordionGallery.jsx'
+import Stack from './components/Stack.jsx'
+import ScrollStack, { ScrollStackItem } from './components/ScrollStack.jsx'
+import TextType from './components/TextType.jsx'
+import DecryptedText from './components/DecryptedText.jsx'
+import StrokeText from './components/StrokeText.jsx'
+import CircularText from './components/CircularText.jsx'
+import TrueFocus from './components/TrueFocus.jsx'
+import GlitchText from './components/GlitchText.jsx'
+import SplitFlapText from './components/SplitFlapText.jsx'
 import TechText from './components/TechText.jsx'
 import { AutoVideo, Reel, VideoModal } from './components/Reel.jsx'
 import { Hero3D, makeCovers } from './parts.jsx'
@@ -8,11 +17,9 @@ import { StaggeredMenu } from './components/StaggeredMenu.jsx'
 import LogoLoop from './components/LogoLoop.jsx'
 import FlowingMenu from './components/FlowingMenu.jsx'
 import OptionWheel from './components/OptionWheel.jsx'
-import HalftoneReveal from './components/HalftoneReveal.jsx'
 import ImageTrail from './components/ImageTrail.jsx'
-import GhostCursor from './components/GhostCursor.jsx'
 import GlareHover from './components/GlareHover.jsx'
-import { achievements, archive, journey, links, liveWork, projects, proof, repos, skillLogos, skills, stack } from './data.js'
+import { achievements, archive, journey, links, liveWork, projects, proof, repos, skillLogos, skills } from './data.js'
 
 const NAV = [
   ['home', 'Home'],
@@ -122,6 +129,35 @@ function useViewport() {
   return w
 }
 
+// Same query useHorizontal uses: true while panels run sideways.
+const H_QUERY = '(min-width: 900px) and (min-aspect-ratio: 1/1)'
+function useHorizontalMode() {
+  const [on, setOn] = useState(() => matchMedia(H_QUERY).matches)
+  useEffect(() => {
+    const mq = matchMedia(H_QUERY)
+    const f = () => setOn(mq.matches)
+    mq.addEventListener('change', f)
+    return () => mq.removeEventListener('change', f)
+  }, [])
+  return on
+}
+
+function Milestone({ m, i }) {
+  return (
+    <div className={`jcard ${m.img ? 'jcard--img' : ''} ${i === journey.length - 1 ? 'jcard--now' : ''}`}>
+      {m.img && <img src={m.img} alt="" loading="lazy" decoding="async" draggable="false" />}
+      <span className="jcard__n">{String(i + 1).padStart(2, '0')}</span>
+      <div className="jcard__body">
+        <span className="jcard__tag mono">{m.tag}</span>
+        <h3>{m.t}</h3>
+        <p>{m.d}</p>
+      </div>
+    </div>
+  )
+}
+// Stack draws the last card on top, so feed it newest-first to show milestone 01 first.
+const stackCards = journey.map((m, i) => <Milestone key={m.t} m={m} i={i} />).reverse()
+
 function Tech({ text, size }) {
   return (
     <div className="techtext" style={{ height: size * 1.15 }}>
@@ -148,6 +184,8 @@ const indexItems = [
   ...projects.map((p) => ({ text: p.title, link: `#/work/${p.slug}`, image: p.gallery?.[0] || p.shot })),
   ...liveWork.filter((w) => !w.slug).map((w) => ({ text: w.t, link: w.url, image: w.shot })),
 ]
+// Featured work panels: sharp real screenshots where they exist; the drawn cover only for the rest.
+const realImage = (p) => p.shot || p.gallery?.[0]
 const trailImages = [...new Set(projects.flatMap((p) => p.gallery || []).concat(liveWork.flatMap((w) => w.gallery || [])))]
 const fine = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -192,12 +230,15 @@ export default function Home({ onOpen, returnTo }) {
   const [repo, setRepo] = useState(0)
   const [menuKey, setMenuKey] = useState(0)
   const closeReel = useCallback(() => setReel(null), [])
-  const curRef = useRef(0)
   const vw = useViewport()
+  const horizontal = useHorizontalMode()
   const goTo = useHorizontal(wrapRef, trackRef, barRef, setActive)
 
   useEffect(() => {
-    makeCovers(projects).then(setCovers)
+    makeCovers(projects.filter((x) => !realImage(x))).then((c) => {
+      const drawn = Object.fromEntries(c.map((x) => [x.title, x.src]))
+      setCovers(projects.map((x) => realImage(x) || drawn[x.title]))
+    })
   }, [])
 
   useEffect(() => {
@@ -215,6 +256,10 @@ export default function Home({ onOpen, returnTo }) {
     return () => io.disconnect()
   }, [covers])
 
+  const workItems = useMemo(
+    () => covers && projects.map((x, i) => ({ image: covers[i], label: x.title, alt: `${x.title}, ${x.kicker}`, link: `#/work/${x.slug}` })),
+    [covers]
+  )
   const cats = useMemo(() => ['All', ...new Set(archive.map((a) => a.c))], [])
   const shown = filter === 'All' ? archive : archive.filter((a) => a.c === filter)
   const p = projects[cur]
@@ -269,9 +314,8 @@ export default function Home({ onOpen, returnTo }) {
               <AutoVideo className="hero__video" src="/hero.mp4" autoPlay />
               <div className="hero__shade" />
               <Hero3D />
-              {fine && <GhostCursor color="#c6ff3d" brightness={1.1} trailLength={40} bloomStrength={0.12} maxDevicePixelRatio={0.5} zIndex={1} />}
               <div className="hero__content">
-                <p className="eyebrow">Full-stack developer and UI engineer</p>
+                <TextType as="p" className="eyebrow hero__type" text={['Full-stack developer', 'UI engineer', 'Product builder', 'Based in Mumbai']} typingSpeed={55} deletingSpeed={28} pauseDuration={2200} cursorCharacter="_" />
                 <h1 className="hero__name">
                   <span className="mask"><span>Vatsal</span></span>
                   <span className="mask"><span>Tank<em>.</em></span></span>
@@ -310,12 +354,13 @@ export default function Home({ onOpen, returnTo }) {
             {/* FEATURED WORK */}
             <section id="work" className="panel work" aria-label="Featured work">
               <div className="work__info">
-                <p className="eyebrow">Featured work</p>
+                <p className="eyebrow"><DecryptedText text="Featured work" animateOn="view" sequential speed={40} revealDirection="start" /></p>
                 <div key={p.slug} className="work__detail">
                   <span className="status">{p.status}</span>
                   <h2>{p.title}</h2>
                   <p className="it work__kicker">{p.kicker}</p>
                   <p className="work__sum">{p.summary}</p>
+                  {p.note && <p className="note">{p.note}</p>}
                   <ul className="chips">
                     {p.tech.slice(0, 5).map((t) => <li key={t}>{t}</li>)}
                   </ul>
@@ -326,33 +371,34 @@ export default function Home({ onOpen, returnTo }) {
                 </div>
                 <div className="work__list" role="tablist" aria-label="Featured projects">
                   {projects.map((x, i) => (
-                    <button key={x.slug} className={i === cur ? 'on' : ''} onClick={() => onOpen(x.slug)}>
+                    <button key={x.slug} className={i === cur ? 'on' : ''} onClick={() => onOpen(x.slug)} onMouseEnter={() => setCur(i)}>
                       {x.title}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="work__carousel">
-                {covers ? (
-                  <FlexCarousel
-                    items={covers}
-                    preset="liquid"
-                    intro="rise"
-                    cardHeight={0.62}
-                    gap={18}
+              <div className="work__acc">
+                {workItems ? (
+                  <AccordionGallery
+                    key={horizontal ? 'h' : 'v'}
+                    items={workItems}
+                    active={cur}
+                    onChange={setCur}
+                    orientation={horizontal ? 'horizontal' : 'vertical'}
+                    height={horizontal ? Math.round(innerHeight * 0.7) : 340}
+                    gap={horizontal ? 10 : 8}
                     radius={16}
-                    captions={false}
-                    captureWheel={false}
-                    onChange={(i) => {
-                      curRef.current = i
-                      setCur(i)
-                    }}
-                    onSelect={(i) => i === curRef.current && onOpen(projects[i].slug)}
+                    expandRatio={horizontal ? 0.46 : 0.5}
+                    tilt={horizontal ? 5 : 0}
+                    parallax={0.4}
+                    grayscale={false}
+                    accentColor="#c6ff3d"
+                    overlayColor="#0a0a0a"
                   />
                 ) : (
                   <div className="skeleton" aria-hidden="true" />
                 )}
-                <p className="work__tip">Drag the cards. Click the focused one to open it.</p>
+                <p className="work__tip">{fine ? 'Hover a panel to preview. Click it to open the case study.' : 'Tap a panel to preview, tap again to open it.'}</p>
               </div>
             </section>
 
@@ -389,6 +435,7 @@ export default function Home({ onOpen, returnTo }) {
                       <div>
                         <h3>{w.t}</h3>
                         <p>{w.d}</p>
+                        {w.note && <p className="note">{w.note}</p>}
                       </div>
                       {w.slug ? (
                         <button className="link" onClick={() => onOpen(w.slug)}>Case study</button>
@@ -429,7 +476,7 @@ export default function Home({ onOpen, returnTo }) {
                 {shown.map((a, i) => {
                   const row = (
                     <>
-                      <b>{a.t}</b>
+                      <b>{a.t}{a.note && <small className="note">{a.note}</small>}</b>
                       <span className="archive__cat">{a.c}</span>
                       <span className="tag">{a.s}</span>
                     </>
@@ -445,7 +492,12 @@ export default function Home({ onOpen, returnTo }) {
 
             {/* STATEMENT + single marquee */}
             <section id="statement" className="panel statement" data-nav="about" aria-label="Approach">
-              <div className="bigword" data-speed="0.25" aria-hidden="true">SHIP</div>
+              <div className="bigword" data-speed="0.25" aria-hidden="true">
+                <StrokeText text="SHIP" strokeColor="rgba(255,255,255,.18)" fillColor="transparent" strokeWidth={1} fontSize={300} fontWeight={700} letterSpacing={-14} trigger="inView" drawDuration={2.4} />
+              </div>
+              <div className="statement__focus rv">
+                <TrueFocus sentence="Code Design Interaction" blurAmount={4} borderColor="#c6ff3d" glowColor="rgba(198,255,61,.5)" animationDuration={0.6} pauseBetweenAnimations={1.4} />
+              </div>
               <p className="statement__text rv">
                 Engineering is how it <em>works</em>. Design is how it <em>feels</em>. I care about both, and I finish what I start.
               </p>
@@ -455,37 +507,35 @@ export default function Home({ onOpen, returnTo }) {
               </div>
             </section>
 
-            {/* ABOUT */}
+            {/* ABOUT: editorial layout after the Firma template */}
             <section id="about" className="panel about" aria-label="About">
-              <a href="#/about" className="about__photo rv" data-hover aria-label="Read the full about page">
-                {fine ? (
-                  <HalftoneReveal src="/media/about-me.webp" inkColor="#0a0a0a" paperColor="#f4f4f2" dotDensity={90} revealRadius={0.32} idleReveal={0} trigger="hover" borderRadius="0px" />
-                ) : (
-                  <img src="/media/about-me.webp" alt="Portrait of Vatsal Tank" loading="lazy" width="1100" height="1563" />
-                )}
-                <span className="about__tag mono">Hi, I'm Vatsal</span>
+              <div className="about__vword" aria-hidden="true"><span>{'About — '.repeat(8)}</span></div>
+              <a href="#/about" className="about__portrait" aria-label="Read the full about page">
+                <img src="/media/about-me.webp" alt="Portrait of Vatsal Tank" loading="lazy" decoding="async" width="1100" height="1563" />
+                <span className="about__badge" aria-hidden="true">
+                  <CircularText text="VATSAL TANK * MUMBAI * READ MY STORY * " spinDuration={24} onHover="speedUp" />
+                </span>
               </a>
-              <div className="about__body">
-                <h2 className="about__lead rv">
-                  I'm a Computer Engineering student who builds <span className="hl">web apps</span>,{' '}
-                  <span className="hl">realtime systems</span> and <span className="it">interfaces that feel right.</span>
-                </h2>
+              <div className="about__copy">
+                <blockquote className="about__quote rv">
+                  &ldquo;Engineering is how a product works. Design is how it feels. <span>I care about both, and I finish what I start.&rdquo;</span>
+                </blockquote>
+                <p className="about__by rv">— Vatsal Tank, full-stack developer and UI engineer</p>
                 <div className="about__cols">
                   <p className="rv">
-                    I started with tribute pages and CSS experiments, moved into Python and data structures, then shipped a
-                    live website for a real restaurant. Now I build full-stack platforms with auth, payments and realtime data.
+                    I'm a Computer Engineering student in Mumbai. <b>I build web apps, realtime systems and interfaces that feel right,</b>{' '}
+                    from tribute pages and Python data structures to a live website for a paying client.
                   </p>
-                  <p className="rv">
-                    I care about the parts people feel: how a page loads, how a button answers, how a layout breathes. The
-                    engineering has to hold up, and the interface has to earn attention.
-                  </p>
+                  <div className="rv">
+                    <p>Today I ship full-stack platforms with auth, payments and realtime data, and I sweat how every page loads and answers.</p>
+                    <a href="#/about" className="about__link">About me</a>
+                  </div>
                 </div>
                 <dl className="about__facts rv">
-                  <div><dt>Studying</dt><dd>Computer Engineering, SVKM's Shri Bhagubhai Mafatlal Polytechnic, 2025 to present</dd></div>
-                  <div><dt>Involved in</dt><dd>Sankhya maths committee, co-committee member</dd></div>
+                  <div><dt>Studying</dt><dd>Computer Engineering, SVKM's Shri Bhagubhai Mafatlal Polytechnic</dd></div>
+                  <div><dt>Involved in</dt><dd>Sankhya maths committee</dd></div>
                   <div><dt>Based in</dt><dd>Mumbai, India</dd></div>
                 </dl>
-                <a href="#/about" className="btn about__more rv">Read my story</a>
               </div>
             </section>
 
@@ -493,29 +543,27 @@ export default function Home({ onOpen, returnTo }) {
             <section id="journey" className="panel journey" aria-label="Journey">
               <div className="journey__head rv">
                 <h2>How I got<br /><span className="it">here</span></h2>
-                <p className="muted">From tribute pages to realtime platforms. Hover a card to bring it forward.</p>
-                <div className="orbit" aria-hidden="true">
-                  <div className="orbit__ring">
-                    {stack.slice(0, 10).map((t, k) => (
-                      <span key={t} style={{ '--i': k }}>{t}</span>
-                    ))}
-                  </div>
-                  <span className="orbit__core" />
+                <p className="muted">From tribute pages to realtime platforms.</p>
+                <div className="journey__flap" aria-hidden="true">
+                  <SplitFlapText words={['HTML', 'PYTHON', 'CLIENTS', 'PRODUCTS', 'PLATFORMS', 'REALTIME', 'NOW']} padTo={9} fontSize={22} gap={3} tileRadius={4} tileColor="#161616" textColor="#c6ff3d" cycleDelay={2200} />
                 </div>
               </div>
-              <ol className="timeline">
-                {journey.map((m, i) => (
-                  <li key={m.t} className={`tcard ${m.img ? 'tcard--img' : ''} ${i % 2 ? 'tcard--low' : ''} rv`} style={{ transitionDelay: `${i * 70}ms` }} data-speed={i % 2 ? 0.05 : -0.04}>
-                    <div className="tcard__inner">
-                      <span className="tcard__n">{String(i + 1).padStart(2, '0')}</span>
-                      {m.img && <img src={m.img} alt="" loading="lazy" decoding="async" />}
-                      <span className="tcard__tag mono">{m.tag}</span>
-                      <h3>{m.t}</h3>
-                      <p>{m.d}</p>
+              <div className="journey__stage">
+                {horizontal ? (
+                  <>
+                    <div className="jstack">
+                      <Stack cards={stackCards} sendToBackOnClick sensitivity={120} autoplay autoplayDelay={3400} pauseOnHover animationConfig={{ stiffness: 240, damping: 24 }} />
                     </div>
-                  </li>
-                ))}
-              </ol>
+                    <p className="journey__tip mono">Drag or click the card to flip through {journey.length} milestones</p>
+                  </>
+                ) : (
+                  <ScrollStack className="jscroll" itemDistance={40} itemStackDistance={18} stackPosition="12vh" baseScale={0.9} itemScale={0.012}>
+                    {journey.map((m, i) => (
+                      <ScrollStackItem key={m.t} itemClassName="jslot"><Milestone m={m} i={i} /></ScrollStackItem>
+                    ))}
+                  </ScrollStack>
+                )}
+              </div>
             </section>
 
             {/* SKILLS */}
@@ -539,7 +587,7 @@ export default function Home({ onOpen, returnTo }) {
             <section id="lab" className="panel lab" data-nav="skills" aria-label="Lab and creative work">
               <div className="lab__copy rv">
                 <p className="eyebrow">Lab</p>
-                <h2>Experiments<br /><span className="it">and side work</span></h2>
+                <h2><GlitchText speed={0.8} enableShadows enableOnHover className="lab__glitch">Experiments</GlitchText><span className="it">and side work</span></h2>
                 <p className="muted">
                   Move your cursor across the panel: it leaves a trail of screens from the projects on this site.
                 </p>

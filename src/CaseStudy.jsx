@@ -15,7 +15,10 @@ export default function CaseStudy({ slug, onBack, onOpen }) {
   useEffect(() => {
     scrollTo(0, 0)
     document.title = `${p.title}, ${p.kicker} | Vatsal Tank`
-    makeCovers(projects).then((c) => setCover(c[i].src))
+    // Real screenshots look sharp full-screen; only projects without one fall back to the drawn cover.
+    const real = p.shot || p.gallery?.[0]
+    if (real) setCover(real)
+    else makeCovers([p]).then((c) => setCover(c[0].src))
     return () => (document.title = 'Vatsal Tank | Full-stack developer and UI engineer')
   }, [i, p])
 
@@ -42,12 +45,12 @@ export default function CaseStudy({ slug, onBack, onOpen }) {
           src={cover}
           alt={`${p.title} cover`}
           title={p.title}
-          
           useWindowScroll
           startWidth={46}
           startHeight={60}
           startRadius={22}
-          mediaZoom={1.2}
+          mediaZoom={1.04}
+          overlayScrim={0.8}
           scrollDistance={1}
           holdDistance={0.2}
         >
@@ -62,6 +65,7 @@ export default function CaseStudy({ slug, onBack, onOpen }) {
         <section className="cs__intro rv">
           <p className="eyebrow">Case study</p>
           <h1>{p.summary}</h1>
+          {p.note && <p className="note">{p.note}</p>}
           <div className="cs__links">
             {p.live && <a className="btn" href={p.live} target="_blank" rel="noreferrer">Live site</a>}
             {p.github && <a className="btn btn--ghost" href={p.github} target="_blank" rel="noreferrer">GitHub</a>}
@@ -88,11 +92,11 @@ export default function CaseStudy({ slug, onBack, onOpen }) {
             <h2 className="cs__h">{p.gallery ? 'Screens from the live product' : 'How it works'}</h2>
             {!p.gallery && <p className="muted">No public build to screenshot yet, so here is what using it looks like, step by step.</p>}
           </div>
-          <ScrollStack useWindowScroll className="cs-stack" itemDistance={60} itemStackDistance={26} stackPosition="14%" scaleEndPosition="8%" baseScale={0.88} itemScale={0.025}>
+          <ScrollStack className="cs-stack" itemDistance={60} itemStackDistance={26} stackPosition="14vh" baseScale={0.9} itemScale={0.02}>
             {p.gallery
               ? p.gallery.map((src, k) => (
                   <ScrollStackItem key={src} itemClassName="cs-card cs-card--img">
-                    <img src={src} alt={`${p.title} screen ${k + 1}`} loading="lazy" />
+                    <img src={src} alt={`${p.title} screen ${k + 1}`} decoding="async" />
                     <span className="cs-card__n mono">{String(k + 1).padStart(2, '0')} / {String(p.gallery.length).padStart(2, '0')}</span>
                   </ScrollStackItem>
                 ))
