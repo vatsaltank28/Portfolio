@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import TextReveal from './components/TextReveal.jsx'
 import { links } from './data.js'
 import './about-page.css'
 
@@ -76,10 +77,10 @@ export default function AboutPage({ onBack }) {
       </section>
 
       <section className="ab__story">
-        <p className="ab__big rv">
+        <TextReveal className="ab__big rv">
           I started with tribute pages and CSS experiments, moved into Python and data structures, then shipped a live
           website for a paying client. Now I build <em>full-stack platforms</em> with auth, payments and realtime data.
-        </p>
+        </TextReveal>
         <div className="ab__cols">
           <div className="rv">
             <p className="mono">How I work</p>

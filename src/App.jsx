@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Home from './Home.jsx'
 import CaseStudy from './CaseStudy.jsx'
 import AboutPage from './AboutPage.jsx'
+import HelloLoader from './components/HelloLoader.jsx'
 import ClickSpark from './components/ClickSpark.jsx'
 import InkCursor from './components/InkCursor.jsx'
 
@@ -12,33 +13,17 @@ const readRoute = () => {
   return m ? m[1] : null
 }
 
-function Loader({ onDone }) {
-  const [n, setN] = useState(0)
-  useEffect(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return onDone()
-    const t0 = performance.now()
-    let raf
-    const step = (t) => {
-      const k = Math.min(1, (t - t0) / 1300)
-      setN(Math.round((1 - Math.pow(1 - k, 3)) * 100))
-      if (k < 1) raf = requestAnimationFrame(step)
-      else setTimeout(onDone, 250)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [onDone])
-  return (
-    <div className={`loader ${n === 100 ? 'loader--out' : ''}`} aria-hidden="true">
-      <span className="loader__name">Vatsal Tank</span>
-      <span className="loader__n">{n}</span>
-    </div>
-  )
-}
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export default function App() {
   const [slug, setSlug] = useState(readRoute)
   const [returnTo, setReturnTo] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!reduceMotion)
+
+  // 'ready' releases the hero entrance animation, which waits behind the loader
+  useEffect(() => {
+    if (!loading) document.body.classList.add('ready')
+  }, [loading])
 
   useEffect(() => {
     const on = () => setSlug(readRoute())
@@ -58,7 +43,7 @@ export default function App() {
   return (
     <ClickSpark sparkColor="#c6ff3d" sparkSize={11} sparkRadius={22} sparkCount={9} duration={450}>
       <InkCursor />
-      {loading && <Loader onDone={() => setLoading(false)} />}
+      {loading && <HelloLoader onDone={() => setLoading(false)} />}
       {slug === 'about' ? (
         <AboutPage onBack={() => back('about')} />
       ) : slug ? (

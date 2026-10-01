@@ -1,0 +1,5 @@
+.hello { position: fixed; inset: 0; z-index: 300; background: #0a0a0a; display: flex; align-items: center; justify-content: center; }
+.hello__word { display: flex; flex-direction: column; align-items: center; gap: 14px; user-select: none; }
+.hello__text { font-size: clamp(3rem, 11vw, 8rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; color: var(--fg); }
+.hello__lang { font-family: var(--mono); font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+.hello__name { position: absolute; left: var(--pad); bottom: var(--pad); font-weight: 600; letter-spacing: -0.03em; color: var(--muted); }

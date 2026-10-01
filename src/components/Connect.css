@@ -1,0 +1,19 @@
+.connect { display: grid; gap: .9rem; padding: clamp(1.4rem, 2.4vw, 2.2rem); border-radius: 22px; background: rgba(18,18,18,.82); box-shadow: inset 0 0 0 1px var(--line); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.connect .eyebrow { margin-bottom: 0; }
+.connect h3 { font-size: clamp(1.3rem, 1.8vw, 1.8rem); line-height: 1.1; letter-spacing: -0.03em; margin-bottom: .4rem; }
+.connect label { display: grid; gap: .35rem; font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.connect input, .connect select, .connect textarea { width: 100%; font: 400 1rem var(--sans); letter-spacing: 0; text-transform: none; color: var(--fg); background: #0d0d0d; border: 1px solid var(--line); border-radius: 12px; padding: .75rem .9rem; resize: vertical; transition: border-color .3s; }
+.connect input:focus, .connect select:focus, .connect textarea:focus { outline: none; border-color: var(--accent); }
+.connect .btn { justify-self: start; margin-top: .3rem; }
+.connect .btn:disabled { opacity: .6; cursor: progress; }
+.connect__honey { position: absolute; left: -9999px; width: 1px !important; height: 1px; opacity: 0; }
+.connect__err { color: #ffb35c; font-size: .9rem; line-height: 1.5; }
+.connect__err a { text-decoration: underline; }
+
+.popup { position: fixed; inset: 0; z-index: 250; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.72); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: popupIn .3s ease-out; }
+.popup__card { position: relative; width: min(100%, 460px); padding: 2.2rem; border-radius: 24px; background: #121212; box-shadow: inset 0 0 0 1px var(--line), 0 40px 100px -30px #000; animation: fadeUp .5s var(--ease); }
+.popup__card h3 { font-size: clamp(1.7rem, 3vw, 2.3rem); line-height: 1.02; margin-bottom: .9rem; }
+.popup__row { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.6rem; }
+.popup__x { position: absolute; top: .9rem; right: 1.1rem; font-size: 1.6rem; line-height: 1; color: var(--muted); }
+.popup__x:hover { color: var(--fg); }
+@keyframes popupIn { from { opacity: 0; } }

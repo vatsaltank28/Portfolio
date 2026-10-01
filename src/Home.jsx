@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import AccordionGallery from './components/AccordionGallery.jsx'
+import InfiniteSpiral from './components/InfiniteSpiral.jsx'
+import TextReveal from './components/TextReveal.jsx'
+import Connect from './components/Connect.jsx'
+import Strands from './components/Strands.jsx'
+import Cubes from './components/Cubes.jsx'
 import Stack from './components/Stack.jsx'
 import ScrollStack, { ScrollStackItem } from './components/ScrollStack.jsx'
 import TextType from './components/TextType.jsx'
@@ -25,8 +29,8 @@ const NAV = [
   ['home', 'Home'],
   ['work', 'Work'],
   ['about', 'About'],
-  ['skills', 'Skills'],
   ['journey', 'Journey'],
+  ['skills', 'Skills'],
   ['contact', 'Contact'],
 ]
 
@@ -88,7 +92,7 @@ function useHorizontal(wrapRef, trackRef, barRef, onActive) {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) scrollBy(0, e.deltaX)
     }
     const onKey = (e) => {
-      if (!st.enabled || e.target.closest('input, textarea')) return
+      if (!st.enabled || e.target.closest('input, textarea, select')) return
       if (e.key === 'ArrowRight') scrollBy(0, innerWidth * 0.6)
       if (e.key === 'ArrowLeft') scrollBy(0, -innerWidth * 0.6)
     }
@@ -141,6 +145,20 @@ function useHorizontalMode() {
   }, [])
   return on
 }
+
+// Mounts its children only while the slot is on screen, so offscreen canvases and rAF loops cost nothing.
+function InView({ className, children }) {
+  const ref = useRef()
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => setOn(e.isIntersecting))
+    io.observe(ref.current)
+    return () => io.disconnect()
+  }, [])
+  return <div ref={ref} className={className} aria-hidden="true">{on && children}</div>
+}
+
+const allSkills = [...new Set(skills.flatMap((g) => g.items))].map((t) => ({ node: <span className="skillbar__item">{t}</span>, title: t }))
 
 function Milestone({ m, i }) {
   return (
@@ -256,14 +274,26 @@ export default function Home({ onOpen, returnTo }) {
     return () => io.disconnect()
   }, [covers])
 
+  // The spiral needs more cards than there are projects to look full, so the set repeats.
   const workItems = useMemo(
-    () => covers && projects.map((x, i) => ({ image: covers[i], label: x.title, alt: `${x.title}, ${x.kicker}`, link: `#/work/${x.slug}` })),
+    () => covers && [0, 1, 2].flatMap((r) => projects.map((x, i) => ({ id: `${x.slug}-${r}`, src: covers[i], label: x.title, alt: `${x.title}, ${x.kicker}`, href: `#/work/${x.slug}` }))),
     [covers]
   )
+  const onSpiralCenter = useCallback((k) => setCur(k % projects.length), [])
   const cats = useMemo(() => ['All', ...new Set(archive.map((a) => a.c))], [])
   const shown = filter === 'All' ? archive : archive.filter((a) => a.c === filter)
   const p = projects[cur]
   const techSize = Math.round(Math.min(vw * 0.11, 170))
+  const axis = horizontal ? 'x' : 'y'
+
+  // The milestone stack waits on card 01 until its panel is actually on screen, and only steps while it is.
+  const journeyRef = useRef()
+  const [journeyOn, setJourneyOn] = useState(false)
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => setJourneyOn(e.isIntersecting), { threshold: 0.5 })
+    io.observe(journeyRef.current)
+    return () => io.disconnect()
+  }, [])
   const nav = (id) => (e) => {
     e.preventDefault()
     goTo(id)
@@ -379,26 +409,30 @@ export default function Home({ onOpen, returnTo }) {
               </div>
               <div className="work__acc">
                 {workItems ? (
-                  <AccordionGallery
-                    key={horizontal ? 'h' : 'v'}
-                    items={workItems}
-                    active={cur}
-                    onChange={setCur}
-                    orientation={horizontal ? 'horizontal' : 'vertical'}
-                    height={horizontal ? Math.round(innerHeight * 0.7) : 340}
-                    gap={horizontal ? 10 : 8}
-                    radius={16}
-                    expandRatio={horizontal ? 0.46 : 0.5}
-                    tilt={horizontal ? 5 : 0}
-                    parallax={0.4}
-                    grayscale={false}
-                    accentColor="#c6ff3d"
-                    overlayColor="#0a0a0a"
-                  />
+                  // animationMode="auto": it spins on its own and never listens to scroll or drag, so the page scrolls freely over it
+                  <div className="work__spiral">
+                    <InfiniteSpiral
+                      key={horizontal ? 'h' : 'v'}
+                      items={workItems}
+                      animationMode="auto"
+                      speed={0.4}
+                      radius={horizontal ? 250 : 120}
+                      cardWidth={horizontal ? 260 : 150}
+                      cardHeight={horizontal ? 175 : 104}
+                      verticalSpacing={horizontal ? 72 : 46}
+                      cardsPerTurn={6}
+                      cardRadius={14}
+                      centerScale={1.25}
+                      edgeFade={0.35}
+                      edgeBlur={4}
+                      pauseOnHover={fine}
+                      onCenterChange={onSpiralCenter}
+                    />
+                  </div>
                 ) : (
                   <div className="skeleton" aria-hidden="true" />
                 )}
-                <p className="work__tip">{fine ? 'Hover a panel to preview. Click it to open the case study.' : 'Tap a panel to preview, tap again to open it.'}</p>
+                <p className="work__tip">{fine ? 'Hover to pause. Click a card to open the case study.' : 'Tap a card to open the case study.'}</p>
               </div>
             </section>
 
@@ -498,9 +532,9 @@ export default function Home({ onOpen, returnTo }) {
               <div className="statement__focus rv">
                 <TrueFocus sentence="Code Design Interaction" blurAmount={4} borderColor="#c6ff3d" glowColor="rgba(198,255,61,.5)" animationDuration={0.6} pauseBetweenAnimations={1.4} />
               </div>
-              <p className="statement__text rv">
-                Engineering is how it <em>works</em>. Design is how it <em>feels</em>. I care about both, and I finish what I start.
-              </p>
+              <TextReveal axis={axis} className="statement__text rv">
+                Ideas are easy. I&rsquo;d rather show you something that <em>runs</em>, <em>loads fast</em> and gets <em>used</em>.
+              </TextReveal>
               <div className="logos" aria-label="Tools I use">
                 <LogoLoop logos={logoRows[0]} speed={70} direction="left" logoHeight={40} gap={64} pauseOnHover scaleOnHover fadeOut fadeOutColor="#0a0a0a" ariaLabel="Tools I use" />
                 <LogoLoop logos={logoRows[1]} speed={55} direction="right" logoHeight={40} gap={64} pauseOnHover scaleOnHover fadeOut fadeOutColor="#0a0a0a" ariaLabel="More tools I use" />
@@ -517,17 +551,17 @@ export default function Home({ onOpen, returnTo }) {
                 </span>
               </a>
               <div className="about__copy">
-                <blockquote className="about__quote rv">
-                  &ldquo;Engineering is how a product works. Design is how it feels. <span>I care about both, and I finish what I start.&rdquo;</span>
-                </blockquote>
+                <TextReveal as="blockquote" axis={axis} className="about__quote rv">
+                  &ldquo;Engineering is how a product works. Design is how it feels. <span className="hl">I care about both, and I finish what I start.&rdquo;</span>
+                </TextReveal>
                 <p className="about__by rv">— Vatsal Tank, full-stack developer and UI engineer</p>
                 <div className="about__cols">
-                  <p className="rv">
+                  <TextReveal axis={axis} className="rv">
                     I'm a Computer Engineering student in Mumbai. <b>I build web apps, realtime systems and interfaces that feel right,</b>{' '}
                     from tribute pages and Python data structures to a live website for a paying client.
-                  </p>
+                  </TextReveal>
                   <div className="rv">
-                    <p>Today I ship full-stack platforms with auth, payments and realtime data, and I sweat how every page loads and answers.</p>
+                    <TextReveal axis={axis}>Today I ship full-stack platforms with auth, payments and realtime data, and I sweat how every page loads and answers.</TextReveal>
                     <a href="#/about" className="about__link">About me</a>
                   </div>
                 </div>
@@ -548,11 +582,11 @@ export default function Home({ onOpen, returnTo }) {
                   <SplitFlapText words={['HTML', 'PYTHON', 'CLIENTS', 'PRODUCTS', 'PLATFORMS', 'REALTIME', 'NOW']} padTo={9} fontSize={22} gap={3} tileRadius={4} tileColor="#161616" textColor="#c6ff3d" cycleDelay={2200} />
                 </div>
               </div>
-              <div className="journey__stage">
+              <div ref={journeyRef} className="journey__stage">
                 {horizontal ? (
                   <>
                     <div className="jstack">
-                      <Stack cards={stackCards} sendToBackOnClick sensitivity={120} autoplay autoplayDelay={3400} pauseOnHover animationConfig={{ stiffness: 240, damping: 24 }} />
+                      <Stack cards={stackCards} sendToBackOnClick sensitivity={120} autoplay={journeyOn} autoplayDelay={4000} pauseOnHover animationConfig={{ stiffness: 240, damping: 24 }} />
                     </div>
                     <p className="journey__tip mono">Drag or click the card to flip through {journey.length} milestones</p>
                   </>
@@ -571,15 +605,29 @@ export default function Home({ onOpen, returnTo }) {
               <div className="skills__head rv">
                 <h2>Skills,<br /><span className="it">with receipts</span></h2>
                 <p className="muted">Each group names the work where it was actually used.</p>
+                {/* desktop only: the cube field reacts to the pointer and would sit in the way of touch scrolling */}
+                {horizontal && (
+                  <InView className="skills__cubes">
+                    <Cubes gridSize={8} maxAngle={50} radius={3} faceColor="#0d0d0d" borderStyle="1px solid rgba(255,255,255,.2)" rippleColor="#c6ff3d" rippleSpeed={1.6} autoAnimate rippleOnClick />
+                  </InView>
+                )}
               </div>
-              <div className="skills__grid">
-                {skills.map((g, i) => (
-                  <article key={g.g} className="skill rv" style={{ transitionDelay: `${(i % 4) * 70}ms` }}>
-                    <h3>{g.g}</h3>
-                    <ul>{g.items.map((t) => <li key={t}>{t}</li>)}</ul>
-                    {g.used && <p className="skill__used">Used in {g.used}</p>}
-                  </article>
-                ))}
+              <div className="skills__main">
+                <div className="skills__grid">
+                  {skills.map((g, i) => (
+                    <article key={g.g} className="skill rv" style={{ transitionDelay: `${(i % 4) * 70}ms` }}>
+                      <h3>{g.g}</h3>
+                      <ul>{g.items.map((t) => <li key={t}>{t}</li>)}</ul>
+                      {g.used && <p className="skill__used">Used in {g.used}</p>}
+                    </article>
+                  ))}
+                </div>
+                <div className="skillbar">
+                  <InView className="skillbar__bg">
+                    <Strands colors={['#c6ff3d', '#3dd9ff', '#ff5c39']} count={4} speed={0.35} glow={2} intensity={0.5} taper={0} />
+                  </InView>
+                  <LogoLoop logos={allSkills} speed={60} direction="left" logoHeight={20} gap={44} fadeOut fadeOutColor="#0a0a0a" ariaLabel="Every skill" />
+                </div>
               </div>
             </section>
 
@@ -608,7 +656,7 @@ export default function Home({ onOpen, returnTo }) {
             </section>
 
             {/* NUMBERS + REPOS */}
-            <section id="github" className="panel github" data-nav="journey" aria-label="GitHub and achievements">
+            <section id="github" className="panel github" data-nav="skills" aria-label="GitHub and achievements">
               <h2 className="rv">Proof in<br /><span className="it">numbers</span></h2>
               <div className="stats">
                 {achievements.map(([n, l], i) => (
@@ -630,14 +678,17 @@ export default function Home({ onOpen, returnTo }) {
 
             {/* CONTACT */}
             <section id="contact" className="panel contact" aria-label="Contact">
-              <Tech text="LET'S TALK" size={Math.round(techSize * 0.9)} />
-              <a className="contact__mail" href={`mailto:${links.email}`}>{links.email}</a>
-              <div className="contact__row">
-                <a className="btn" href={`mailto:${links.email}`}>Email me</a>
-                <Ext href={links.linkedin} className="btn btn--ghost">LinkedIn</Ext>
-                <Ext href={links.github} className="btn btn--ghost">GitHub</Ext>
-                <Ext href={links.resume} className="btn btn--ghost">Résumé</Ext>
+              <div className="contact__main">
+                <Tech text="LET'S TALK" size={Math.round(techSize * (horizontal ? 0.6 : 0.9))} />
+                <a className="contact__mail" href={`mailto:${links.email}`}>{links.email}</a>
+                <div className="contact__row">
+                  <a className="btn" href={`mailto:${links.email}`}>Email me</a>
+                  <Ext href={links.linkedin} className="btn btn--ghost">LinkedIn</Ext>
+                  <Ext href={links.github} className="btn btn--ghost">GitHub</Ext>
+                  <Ext href={links.resume} className="btn btn--ghost">Résumé</Ext>
+                </div>
               </div>
+              <Connect />
               <footer className="foot">
                 <span><b>Vatsal Tank</b>, full-stack developer and UI engineer</span>
                 <span>Updated September 2026</span>

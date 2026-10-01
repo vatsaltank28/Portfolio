@@ -9,8 +9,10 @@
 .hero__name { font-size: clamp(4rem, min(12vw, 21vh), 13rem); line-height: .84; letter-spacing: -0.065em; margin-bottom: 1.8rem; }
 .hero__name em { font-style: normal; color: var(--accent); }
 .mask { display: block; overflow: hidden; padding-bottom: .04em; }
-.mask > span { display: block; transform: translateY(105%); animation: up 1.2s var(--ease) forwards 1.5s; }
-.mask:nth-child(2) > span { animation-delay: 1.62s; }
+.mask > span { display: block; transform: translateY(105%); animation: up 1.2s var(--ease) forwards .15s; }
+.mask:nth-child(2) > span { animation-delay: .27s; }
+/* hold the entrance until the loader has lifted */
+body:not(.ready) .mask > span { animation-play-state: paused; }
 @keyframes up { to { transform: none; } }
 .hero__sub { font-size: clamp(1.1rem, 1.6vw, 1.45rem); max-width: 30ch; line-height: 1.35; color: #d8d8d4; margin-bottom: 2.2rem; }
 .hero__sub i { color: var(--fg); }
@@ -275,7 +277,25 @@ a.archive__row:hover { padding-left: 1.2rem; background: rgba(255,255,255,.04); 
 /* ---- featured work: accordion gallery ---- */
 .work__acc { position: relative; min-width: 0; width: 100%; }
 .work__acc .skeleton { height: 70vh; }
-.work__acc .ag-panel__text { font-weight: 600; letter-spacing: -0.01em; }
+.work__spiral { height: 70vh; }
+.work__spiral .infinite-spiral__item { border-color: rgba(255,255,255,.16); background: #141414; }
+/* drawn covers carry their title at the bottom; screenshots are barely cropped either way */
+.work__spiral .infinite-spiral__image { object-position: center bottom; }
+
+/* ---- skills: grid + running bar of every skill, cube field under the heading ---- */
+.skills__main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.skills__main .skills__grid { height: 62vh; }
+.skillbar { position: relative; height: 12vh; min-height: 84px; display: flex; align-items: center; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: #0d0d0d; }
+.skillbar__bg { position: absolute; inset: 0; opacity: .75; pointer-events: none; }
+.skillbar .logoloop { position: relative; width: 100%; }
+.skillbar__item { font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; white-space: nowrap; text-shadow: 0 1px 12px #000; }
+.skillbar__item::after { content: '✦'; margin-left: 44px; color: var(--accent); font-size: .7em; }
+.skills__cubes { width: min(20vw, 34vh); aspect-ratio: 1; margin-top: 2.6rem; }
+.skills__cubes .default-animation { width: 100%; }
+
+/* ---- contact: details column + form ---- */
+.contact { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 5vw; align-items: center; padding-top: 5.5rem; }
+.contact__main { display: flex; flex-direction: column; }
 .note { margin-top: .6rem; font-family: var(--mono); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: #ffb35c; line-height: 1.5; }
 .archive__list b .note { display: block; margin-top: .3rem; font-weight: 400; }
 .hero__type { min-height: 1.2em; }
@@ -292,7 +312,7 @@ a.archive__row:hover { padding-left: 1.2rem; background: rgba(255,255,255,.04); 
 .about__badge .circular-text span { font-size: 14px; }
 .about__copy { align-self: center; display: flex; flex-direction: column; max-width: 1000px; padding-bottom: 4rem; }
 .about__quote { font: 400 clamp(2rem, 3.6vw, 4rem)/1.08 'Instrument Serif', Georgia, serif; letter-spacing: -0.01em; color: var(--ink); max-width: 22ch; }
-.about__quote span { color: #e2553a; font-style: italic; }
+.about__quote .hl { color: #e2553a; font-style: italic; }
 .about__by { margin-top: 1.6rem; font: 500 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #6b6b67; }
 .about__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 12vh; }
 .about__cols p { font-size: 1.02rem; line-height: 1.65; color: #5d5d59; max-width: 40ch; }
@@ -339,9 +359,12 @@ a.archive__row:hover { padding-left: 1.2rem; background: rgba(255,255,255,.04); 
 
 @media (max-width: 899px), (max-aspect-ratio: 1/1) {
   .work__acc { margin-top: 2rem; }
-  .work__acc .accordion-gallery { flex-direction: column; height: 544px !important; perspective: none; }
-  .work__acc .ag-panel { min-height: 0; transform: none !important; }
-  .work__acc .ag-panel__media { width: 100% !important; height: var(--ag-media-size) !important; }
+  .work__spiral { height: 460px; }
+  .skills__main { display: block; }
+  .skills__main .skills__grid { height: auto; }
+  .skillbar { height: 88px; margin-top: 1.2rem; }
+  .contact { display: block; min-height: 0; }
+  .contact .connect { margin-top: 3rem; }
   .about { grid-template-columns: 1fr; padding: 5.5rem var(--pad) 0; }
   .about > * + * { margin-top: 0; }
   .about__vword { display: none; }
