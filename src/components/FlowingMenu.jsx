@@ -39,6 +39,8 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
   const marqueeInnerRef = useRef(null);
   const animationRef = useRef(null);
   const [repetitions, setRepetitions] = useState(4);
+  // the preview image is only fetched once the row is first hovered
+  const [wantImg, setWantImg] = useState(false);
 
   const animationDefaults = { duration: 0.6, ease: 'expo' };
 
@@ -95,7 +97,9 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
         x: -contentWidth,
         duration: speed,
         ease: 'none',
-        repeat: -1
+        repeat: -1,
+        // the marquee is only visible while hovered, so it only runs then
+        paused: true
       });
     };
 
@@ -122,6 +126,7 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
       .set(marqueeRef.current, { y: edge === 'top' ? '-101%' : '101%' }, 0)
       .set(marqueeInnerRef.current, { y: edge === 'top' ? '101%' : '-101%' }, 0)
       .to([marqueeRef.current, marqueeInnerRef.current], { y: '0%' }, 0);
+    animationRef.current?.play();
   };
 
   const handleMouseLeave = ev => {
@@ -134,7 +139,8 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
     gsap
       .timeline({ defaults: animationDefaults })
       .to(marqueeRef.current, { y: edge === 'top' ? '-101%' : '101%' }, 0)
-      .to(marqueeInnerRef.current, { y: edge === 'top' ? '101%' : '-101%' }, 0);
+      .to(marqueeInnerRef.current, { y: edge === 'top' ? '101%' : '-101%' }, 0)
+      .call(() => animationRef.current?.pause());
   };
 
   return (
@@ -142,7 +148,7 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
       <a
         className="menu__item-link"
         href={link}
-        onMouseEnter={handleMouseEnter}
+        onMouseEnter={(e) => { setWantImg(true); handleMouseEnter(e); }}
         onMouseLeave={handleMouseLeave}
         style={{ color: textColor }}
       >
@@ -154,7 +160,7 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
             {[...Array(repetitions)].map((_, idx) => (
               <div className="marquee__part" key={idx} style={{ color: marqueeTextColor }}>
                 <span>{text}</span>
-                <div className="marquee__img" style={{ backgroundImage: `url(${image})` }} />
+                {image && <div className="marquee__img" style={wantImg ? { backgroundImage: `url(${image})` } : undefined} />}
               </div>
             ))}
           </div>

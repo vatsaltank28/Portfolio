@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import './Reel.css'
+import { poster as sizedPoster } from '../img.js'
 
 /* Plays a muted <video> only while it is on screen, so off-screen videos never cost decode time. */
-export function AutoVideo({ className = '', ...props }) {
+export function AutoVideo({ className = '', poster, ...props }) {
   const ref = useRef()
   useEffect(() => {
     const v = ref.current
@@ -21,7 +22,7 @@ export function AutoVideo({ className = '', ...props }) {
       v.removeEventListener('error', onError)
     }
   }, [])
-  return <video ref={ref} className={className} muted loop playsInline preload="metadata" aria-hidden="true" {...props} />
+  return <video ref={ref} className={className} muted loop playsInline preload="none" aria-hidden="true" poster={sizedPoster(poster)} {...props} />
 }
 
 /* Firma-style reel: the project name is cut out of a black plate and the video plays through the letters.
@@ -30,7 +31,7 @@ export function Reel({ id, nav, index, title, kicker, loop, poster, onPlay, colo
   const size = `min(${(92 / title.length) * 1.72}vw, 46vh)`
   return (
     <section id={id} data-nav={nav} className="panel reel" aria-label={`${title} showreel`} style={{ '--c': color }}>
-      <button className="reel__stage" onClick={onPlay} aria-label={`Play the ${title} video`} data-hover>
+      <button className="reel__stage" onClick={onPlay} aria-label={`${title}: play reel`} data-hover>
         <AutoVideo className="reel__video" src={loop} poster={poster} />
         {tint && <span className="reel__tint" aria-hidden="true" />}
         <div className="reel__plate" aria-hidden="true">

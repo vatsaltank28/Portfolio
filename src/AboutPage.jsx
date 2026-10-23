@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import TextReveal from './components/TextReveal.jsx'
 import { links } from './data.js'
+import { srcSet } from './img.js'
 import './about-page.css'
 
 const WORDS = ['About', 'Vatsal Tank', 'Builder', 'Designer', 'Engineer']
@@ -61,7 +62,7 @@ export default function AboutPage({ onBack }) {
           {col('up')}
           {col('down')}
           <figure className="ab__photo">
-            <img src="/media/about-me.webp" alt="Portrait of Vatsal Tank, arms crossed, smiling" width="1100" height="1563" />
+            <img src="/media/about-me.webp" srcSet={srcSet('/media/about-me.webp')} sizes="(max-width: 899px) 100vw, 45vw" alt="Portrait of Vatsal Tank, arms crossed, smiling" width="1100" height="1563" />
             <figcaption><span className="mono">Mumbai, India</span><b>Vatsal Tank</b></figcaption>
           </figure>
           <div className="ab__intro">

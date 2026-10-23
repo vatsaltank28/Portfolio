@@ -1,5 +1,6 @@
 'use client';
 
+import useOnScreen from '../useOnScreen.js';
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import './LogoLoop.css';
 
@@ -58,7 +59,7 @@ const useImageLoader = (seqRef, onLoad, dependencies) => {
   }, [onLoad, seqRef, dependencies]);
 };
 
-const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical) => {
+const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, active) => {
   const rafRef = useRef(null);
   const lastTimestampRef = useRef(null);
   const offsetRef = useRef(0);
@@ -77,6 +78,9 @@ const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHover
         : `translate3d(${-offsetRef.current}px, 0, 0)`;
       track.style.transform = transformValue;
     }
+
+    // off-screen: hold position instead of spinning a frame loop nobody sees
+    if (!active) return;
 
     const animate = timestamp => {
       if (lastTimestampRef.current === null) {
@@ -114,7 +118,7 @@ const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHover
       }
       lastTimestampRef.current = null;
     };
-  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef]);
+  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef, active]);
 };
 
 export const LogoLoop = memo(
@@ -194,7 +198,8 @@ export const LogoLoop = memo(
 
     useImageLoader(seqRef, updateDimensions, [logos, gap, logoHeight, isVertical]);
 
-    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical);
+    const onScreen = useOnScreen(containerRef);
+    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical, onScreen);
 
     const cssVariables = useMemo(
       () => ({

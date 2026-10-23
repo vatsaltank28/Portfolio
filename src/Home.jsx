@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, startTransition, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import InfiniteSpiral from './components/InfiniteSpiral.jsx'
 import TextReveal from './components/TextReveal.jsx'
 import Connect from './components/Connect.jsx'
-import Strands from './components/Strands.jsx'
-import Cubes from './components/Cubes.jsx'
-import Stack from './components/Stack.jsx'
 import ScrollStack, { ScrollStackItem } from './components/ScrollStack.jsx'
 import TextType from './components/TextType.jsx'
 import DecryptedText from './components/DecryptedText.jsx'
@@ -15,15 +12,44 @@ import GlitchText from './components/GlitchText.jsx'
 import SplitFlapText from './components/SplitFlapText.jsx'
 import TechText from './components/TechText.jsx'
 import { AutoVideo, Reel, VideoModal } from './components/Reel.jsx'
-import { Hero3D, makeCovers } from './parts.jsx'
+import { makeCovers } from './parts.jsx'
+import { small, srcSet } from './img.js'
+import { placeHeroStill } from './heroStill.js'
 import GooeyNav from './components/GooeyNav.jsx'
 import { StaggeredMenu } from './components/StaggeredMenu.jsx'
 import LogoLoop from './components/LogoLoop.jsx'
 import FlowingMenu from './components/FlowingMenu.jsx'
 import OptionWheel from './components/OptionWheel.jsx'
-import ImageTrail from './components/ImageTrail.jsx'
 import GlareHover from './components/GlareHover.jsx'
 import { achievements, archive, journey, links, liveWork, projects, proof, repos, skillLogos, skills } from './data.js'
+
+// Heavy, below-the-fold or desktop-only pieces load in their own chunks so the first paint ships less JS.
+const Hero3D = lazy(() => import('./Hero3D.jsx'))
+const Cubes = lazy(() => import('./components/Cubes.jsx'))
+const Strands = lazy(() => import('./components/Strands.jsx'))
+const Stack = lazy(() => import('./components/Stack.jsx'))
+const ImageTrail = lazy(() => import('./components/ImageTrail.jsx'))
+
+// The WebGL blobs only run on large pointer screens. They follow the pointer, so they load on its first move
+// (then wait for an idle moment): three.js and the shader compile never land on the initial load.
+function useIdleDesktop() {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    if (!matchMedia('(min-width: 900px) and (pointer: fine)').matches) return
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200))
+    let id
+    const go = () => (id = idle(() => setOn(true), { timeout: 1000 }))
+    addEventListener('pointermove', go, { once: true })
+    return () => {
+      removeEventListener('pointermove', go)
+      ;(window.cancelIdleCallback || clearTimeout)(id)
+    }
+  }, [])
+  return on
+}
+
+const STAGES = 6
 
 const NAV = [
   ['home', 'Home'],
@@ -53,6 +79,8 @@ function useHorizontal(wrapRef, trackRef, barRef, onActive) {
       st.enabled = mq.matches
       panels = [...track.children].map((el) => ({ id: el.id, nav: el.dataset.nav || el.id, left: el.offsetLeft, w: el.offsetWidth }))
       if (!st.enabled) {
+        docMax = document.documentElement.scrollHeight - innerHeight
+        kick()
         wrap.style.height = ''
         track.style.transform = ''
         pars.forEach((p) => (p.el.style.transform = ''))
@@ -66,9 +94,14 @@ function useHorizontal(wrapRef, trackRef, barRef, onActive) {
         speed: +el.dataset.speed,
         left: el.closest('.panel').offsetLeft,
       }))
+      kick()
     }
 
+    // Frames only run while the track is catching up to the scroll position; a scroll event restarts them.
+    let raf = 0
+    let docMax = 0
     const tick = () => {
+      raf = 0
       if (st.enabled) {
         st.target = Math.min(st.max, Math.max(0, scrollY - wrap.offsetTop))
         st.cur = reduce ? st.target : st.cur + (st.target - st.cur) * 0.1
@@ -80,10 +113,13 @@ function useHorizontal(wrapRef, trackRef, barRef, onActive) {
         const a = panels.find((p) => pos >= p.left && pos < p.left + p.w)
         if (a && a.nav !== lastActive) onActive((lastActive = a.nav))
       } else {
-        const m = document.documentElement.scrollHeight - innerHeight
-        barRef.current.style.transform = `scaleX(${m ? scrollY / m : 0})`
+        barRef.current.style.transform = `scaleX(${docMax ? scrollY / docMax : 0})`
+        return
       }
-      raf = requestAnimationFrame(tick)
+      if (st.cur !== st.target) raf = requestAnimationFrame(tick)
+    }
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(tick)
     }
 
     // trackpad sideways swipes + arrow keys also move the page
@@ -98,7 +134,7 @@ function useHorizontal(wrapRef, trackRef, barRef, onActive) {
     }
 
     measure()
-    let raf = requestAnimationFrame(tick)
+    addEventListener('scroll', kick, { passive: true })
     const ro = new ResizeObserver(measure)
     ro.observe(track)
     addEventListener('resize', measure)
@@ -107,6 +143,7 @@ function useHorizontal(wrapRef, trackRef, barRef, onActive) {
     mq.addEventListener('change', measure)
     return () => {
       cancelAnimationFrame(raf)
+      removeEventListener('scroll', kick)
       ro.disconnect()
       removeEventListener('resize', measure)
       removeEventListener('wheel', onWheel)
@@ -146,6 +183,40 @@ function useHorizontalMode() {
   return on
 }
 
+// Mounts its children the first time the slot nears the screen, then keeps them.
+function Later({ className, children, ...rest }) {
+  const ref = useRef()
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setOn(true), { rootMargin: '300px' })
+    io.observe(ref.current)
+    return () => io.disconnect()
+  }, [])
+  return <div ref={ref} className={className} {...rest}>{on && children}</div>
+}
+
+// The hero video waits until the page has loaded (desktop) or the visitor interacts (phone); the poster covers it until then.
+function useHeroVideo() {
+  const [src, setSrc] = useState(null)
+  useEffect(() => {
+    let id
+    const load = () => setSrc('/hero.mp4')
+    const go = () => (id = setTimeout(load, 800))
+    // phones keep the poster until the visitor touches or scrolls, so the 1.7 MB clip never competes with first load
+    const phone = matchMedia('(max-width: 899px), (pointer: coarse)').matches
+    const evs = ['pointerdown', 'touchstart', 'scroll', 'keydown']
+    if (phone) evs.forEach((e) => addEventListener(e, load, { once: true, passive: true }))
+    else if (document.readyState === 'complete') go()
+    else addEventListener('load', go, { once: true })
+    return () => {
+      evs.forEach((e) => removeEventListener(e, load))
+      removeEventListener('load', go)
+      clearTimeout(id)
+    }
+  }, [])
+  return src
+}
+
 // Mounts its children only while the slot is on screen, so offscreen canvases and rAF loops cost nothing.
 function InView({ className, children }) {
   const ref = useRef()
@@ -155,7 +226,7 @@ function InView({ className, children }) {
     io.observe(ref.current)
     return () => io.disconnect()
   }, [])
-  return <div ref={ref} className={className} aria-hidden="true">{on && children}</div>
+  return <div ref={ref} className={className} aria-hidden="true">{on && <Suspense fallback={null}>{children}</Suspense>}</div>
 }
 
 const allSkills = [...new Set(skills.flatMap((g) => g.items))].map((t) => ({ node: <span className="skillbar__item">{t}</span>, title: t }))
@@ -163,7 +234,7 @@ const allSkills = [...new Set(skills.flatMap((g) => g.items))].map((t) => ({ nod
 function Milestone({ m, i }) {
   return (
     <div className={`jcard ${m.img ? 'jcard--img' : ''} ${i === journey.length - 1 ? 'jcard--now' : ''}`}>
-      {m.img && <img src={m.img} alt="" loading="lazy" decoding="async" draggable="false" />}
+      {m.img && <img src={m.img} srcSet={srcSet(m.img)} sizes="(max-width: 899px) 100vw, 50vw" alt="" loading="lazy" decoding="async" draggable="false" />}
       <span className="jcard__n">{String(i + 1).padStart(2, '0')}</span>
       <div className="jcard__body">
         <span className="jcard__tag mono">{m.tag}</span>
@@ -178,7 +249,7 @@ const stackCards = journey.map((m, i) => <Milestone key={m.t} m={m} i={i} />).re
 
 function Tech({ text, size }) {
   return (
-    <div className="techtext" style={{ height: size * 1.15 }}>
+    <Later className="techtext" style={{ height: size * 1.15 }}>
       <TechText
         text={text}
         fontFamily="Inter Tight"
@@ -189,7 +260,7 @@ function Tech({ text, size }) {
         labels
         specks={12}
       />
-    </div>
+    </Later>
   )
 }
 
@@ -250,13 +321,29 @@ export default function Home({ onOpen, returnTo }) {
   const closeReel = useCallback(() => setReel(null), [])
   const vw = useViewport()
   const horizontal = useHorizontalMode()
+  const show3D = useIdleDesktop()
+  const heroVideo = useHeroVideo()
+  const heroStillRef = useRef()
+  useLayoutEffect(() => placeHeroStill(heroStillRef.current, horizontal), [horizontal])
+  // Sections after the hero mount a group at a time in idle periods, so no single commit blocks input for long.
+  const [stage, setStage] = useState(returnTo ? STAGES : 0)
+  useEffect(() => {
+    if (stage >= STAGES) return
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 50))
+    const id = idle(() => startTransition(() => setStage((n) => n + 1)), { timeout: 600 })
+    return () => (window.cancelIdleCallback || clearTimeout)(id)
+  }, [stage])
   const goTo = useHorizontal(wrapRef, trackRef, barRef, setActive)
 
   useEffect(() => {
-    makeCovers(projects.filter((x) => !realImage(x))).then((c) => {
-      const drawn = Object.fromEntries(c.map((x) => [x.title, x.src]))
-      setCovers(projects.map((x) => realImage(x) || drawn[x.title]))
-    })
+    // drawing the fallback covers is canvas work; keep it off the critical path
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 300))
+    const id = idle(() =>
+      makeCovers(projects.filter((x) => !realImage(x)), 0.4).then((c) => {
+        const drawn = Object.fromEntries(c.map((x) => [x.title, x.src]))
+        setCovers(projects.map((x) => small(realImage(x)) || drawn[x.title]))
+      }), { timeout: 2000 })
+    return () => (window.cancelIdleCallback || clearTimeout)(id)
   }, [])
 
   useEffect(() => {
@@ -272,7 +359,7 @@ export default function Home({ onOpen, returnTo }) {
     )
     document.querySelectorAll('.rv').forEach((el) => io.observe(el))
     return () => io.disconnect()
-  }, [covers])
+  }, [covers, stage])
 
   // The spiral needs more cards than there are projects to look full, so the set repeats.
   const workItems = useMemo(
@@ -291,9 +378,10 @@ export default function Home({ onOpen, returnTo }) {
   const [journeyOn, setJourneyOn] = useState(false)
   useEffect(() => {
     const io = new IntersectionObserver(([e]) => setJourneyOn(e.isIntersecting), { threshold: 0.5 })
+    if (!journeyRef.current) return
     io.observe(journeyRef.current)
     return () => io.disconnect()
-  }, [])
+  }, [stage])
   const nav = (id) => (e) => {
     e.preventDefault()
     goTo(id)
@@ -341,9 +429,10 @@ export default function Home({ onOpen, returnTo }) {
           <div ref={trackRef} className="track">
             {/* HERO */}
             <section id="home" className="panel hero" aria-label="Introduction">
-              <AutoVideo className="hero__video" src="/hero.mp4" autoPlay />
+              <div className="hero__still" ref={heroStillRef} />
+              <AutoVideo className="hero__video" src={heroVideo || undefined} autoPlay />
               <div className="hero__shade" />
-              <Hero3D />
+              {show3D && <Suspense fallback={null}><Hero3D /></Suspense>}
               <div className="hero__content">
                 <TextType as="p" className="eyebrow hero__type" text={['Full-stack developer', 'UI engineer', 'Product builder', 'Based in Mumbai']} typingSpeed={55} deletingSpeed={28} pauseDuration={2200} cursorCharacter="_" />
                 <h1 className="hero__name">
@@ -360,8 +449,10 @@ export default function Home({ onOpen, returnTo }) {
               </div>
             </section>
 
+            {stage >= 1 && <>
             {/* WHAT I DO: bento */}
             <section id="proof" className="panel proof" data-nav="home" aria-label="What I do">
+              <h2 className="sr-only">What I do</h2>
               <div className="proof__head rv">
                 <Tech text="I BUILD." size={techSize} />
                 <p className="proof__lede">
@@ -371,7 +462,7 @@ export default function Home({ onOpen, returnTo }) {
               <div className="bento">
                 {proof.map((x, i) => (
                   <article key={x.k} className={`bento__cell bento__cell--${i + 1} rv`} style={{ transitionDelay: `${i * 90}ms` }}>
-                    {x.video ? <AutoVideo src={x.video} poster={x.shot} /> : x.shot && <img src={x.shot} alt="" loading="lazy" decoding="async" />}
+                    {x.video ? <AutoVideo src={x.video} poster={x.shot} /> : x.shot && <img src={x.shot} srcSet={srcSet(x.shot)} sizes="(max-width: 899px) 100vw, 50vw" alt="" loading="lazy" decoding="async" />}
                     <div className="bento__text">
                       <h3>{x.k}</h3>
                       <p>{x.body}</p>
@@ -399,7 +490,7 @@ export default function Home({ onOpen, returnTo }) {
                     {p.live && <Ext href={p.live} className="btn btn--ghost">Live site</Ext>}
                   </div>
                 </div>
-                <div className="work__list" role="tablist" aria-label="Featured projects">
+                <div className="work__list" role="group" aria-label="Featured projects">
                   {projects.map((x, i) => (
                     <button key={x.slug} className={i === cur ? 'on' : ''} onClick={() => onOpen(x.slug)} onMouseEnter={() => setCur(i)}>
                       {x.title}
@@ -436,6 +527,8 @@ export default function Home({ onOpen, returnTo }) {
               </div>
             </section>
 
+            </>}
+            {stage >= 2 && <>
             {/* SHOWREELS: video playing inside the project name */}
             {projects.filter((x) => x.loop).map((x, i) => (
               <Reel
@@ -462,7 +555,7 @@ export default function Home({ onOpen, returnTo }) {
                     <GlareHover width="100%" height="auto" background="transparent" borderColor="transparent" borderRadius="14px" glareColor="#ffffff" glareOpacity={0.22} glareSize={220} className="shot__glare">
                     <Ext href={w.url} className="shot__frame">
                       <span className="shot__bar"><i /><i /><i /><b>{w.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</b></span>
-                      {w.loop ? <AutoVideo src={w.loop} poster={w.shot} /> : <img src={w.shot} alt={`${w.t} homepage`} loading="lazy" decoding="async" />}
+                      {w.loop ? <AutoVideo src={w.loop} poster={w.shot} /> : <img src={w.shot} srcSet={srcSet(w.shot)} sizes="(max-width: 899px) 100vw, 50vw" alt={`${w.t} homepage`} loading="lazy" decoding="async" />}
                     </Ext>
                     </GlareHover>
                     <div className="shot__meta">
@@ -482,6 +575,8 @@ export default function Home({ onOpen, returnTo }) {
               </div>
             </section>
 
+            </>}
+            {stage >= 3 && <>
             {/* PROJECT INDEX: flowing menu */}
             <section id="index" className="panel pindex" data-nav="work" aria-label="Project index">
               <div className="pindex__head rv">
@@ -524,11 +619,13 @@ export default function Home({ onOpen, returnTo }) {
               </ol>
             </section>
 
+            </>}
+            {stage >= 4 && <>
             {/* STATEMENT + single marquee */}
             <section id="statement" className="panel statement" data-nav="about" aria-label="Approach">
-              <div className="bigword" data-speed="0.25" aria-hidden="true">
+              <Later className="bigword" data-speed="0.25" aria-hidden="true">
                 <StrokeText text="SHIP" strokeColor="rgba(255,255,255,.18)" fillColor="transparent" strokeWidth={1} fontSize={300} fontWeight={700} letterSpacing={-14} trigger="inView" drawDuration={2.4} />
-              </div>
+              </Later>
               <div className="statement__focus rv">
                 <TrueFocus sentence="Code Design Interaction" blurAmount={4} borderColor="#c6ff3d" glowColor="rgba(198,255,61,.5)" animationDuration={0.6} pauseBetweenAnimations={1.4} />
               </div>
@@ -544,8 +641,8 @@ export default function Home({ onOpen, returnTo }) {
             {/* ABOUT: editorial layout after the Firma template */}
             <section id="about" className="panel about" aria-label="About">
               <div className="about__vword" aria-hidden="true"><span>{'About — '.repeat(8)}</span></div>
-              <a href="#/about" className="about__portrait" aria-label="Read the full about page">
-                <img src="/media/about-me.webp" alt="Portrait of Vatsal Tank" loading="lazy" decoding="async" width="1100" height="1563" />
+              <a href="#/about" className="about__portrait" aria-label="Vatsal Tank, Mumbai: read my story">
+                <img src="/media/about-me.webp" srcSet={srcSet('/media/about-me.webp')} sizes="(max-width: 899px) 90vw, 35vw" alt="Portrait of Vatsal Tank" loading="lazy" decoding="async" width="1100" height="1563" />
                 <span className="about__badge" aria-hidden="true">
                   <CircularText text="VATSAL TANK * MUMBAI * READ MY STORY * " spinDuration={24} onHover="speedUp" />
                 </span>
@@ -573,6 +670,8 @@ export default function Home({ onOpen, returnTo }) {
               </div>
             </section>
 
+            </>}
+            {stage >= 5 && <>
             {/* JOURNEY: 3D milestone cards */}
             <section id="journey" className="panel journey" aria-label="Journey">
               <div className="journey__head rv">
@@ -586,7 +685,7 @@ export default function Home({ onOpen, returnTo }) {
                 {horizontal ? (
                   <>
                     <div className="jstack">
-                      <Stack cards={stackCards} sendToBackOnClick sensitivity={120} autoplay={journeyOn} autoplayDelay={4000} pauseOnHover animationConfig={{ stiffness: 240, damping: 24 }} />
+                      <Suspense fallback={null}><Stack cards={stackCards} sendToBackOnClick sensitivity={120} autoplay={journeyOn} autoplayDelay={4000} pauseOnHover animationConfig={{ stiffness: 240, damping: 24 }} /></Suspense>
                     </div>
                     <p className="journey__tip mono">Drag or click the card to flip through {journey.length} milestones</p>
                   </>
@@ -631,6 +730,8 @@ export default function Home({ onOpen, returnTo }) {
               </div>
             </section>
 
+            </>}
+            {stage >= 6 && <>
             {/* LAB */}
             <section id="lab" className="panel lab" data-nav="skills" aria-label="Lab and creative work">
               <div className="lab__copy rv">
@@ -651,7 +752,7 @@ export default function Home({ onOpen, returnTo }) {
                 <span className="lab__w lab__w1">CODE</span>
                 <span className="lab__w lab__w2">design</span>
                 <span className="lab__w lab__w3">INTERACTION</span>
-                <div className="lab__trail">{fine ? <ImageTrail items={trailImages} variant={1} /> : null}</div>
+                {fine ? <Later className="lab__trail"><Suspense fallback={null}><ImageTrail items={trailImages} variant={1} /></Suspense></Later> : <div className="lab__trail" />}
               </div>
             </section>
 
@@ -694,6 +795,7 @@ export default function Home({ onOpen, returnTo }) {
                 <span>Updated September 2026</span>
               </footer>
             </section>
+            </>}
           </div>
         </div>
       </main>

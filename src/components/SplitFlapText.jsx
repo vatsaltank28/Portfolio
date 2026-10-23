@@ -1,5 +1,6 @@
 'use client';
 
+import useOnScreen from '../useOnScreen.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './SplitFlapText.css';
 
@@ -83,6 +84,8 @@ const SplitFlapText = ({
   const rafRef = useRef(null);
   const cycleTimerRef = useRef(null);
   const currentTextRef = useRef('');
+  const rootRef = useRef(null);
+  const onScreen = useOnScreen(rootRef);
 
   const sourceWords = Array.isArray(words) && words.length > 0 ? words : DEFAULT_WORDS;
   const phrasesKey = typeof text === 'string' ? text : sourceWords.map(word => String(word ?? '')).join('\u001f');
@@ -98,6 +101,7 @@ const SplitFlapText = ({
   const [tiles, setTiles] = useState(() => createTiles(normalizedPhrases[0] || ''));
 
   useEffect(() => {
+    if (!onScreen) return;
     const clearAnimation = () => {
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
@@ -260,7 +264,7 @@ const SplitFlapText = ({
       cancelled = true;
       clearAnimation();
     };
-  }, [normalizedPhrases, width, loop, cycleDelay, flipDuration, stagger, flipsPerChar, charset, prefersReducedMotion]);
+  }, [normalizedPhrases, width, loop, cycleDelay, flipDuration, stagger, flipsPerChar, charset, prefersReducedMotion, onScreen]);
 
   const settledText = tiles
     .map(tile => tile.current)
@@ -278,6 +282,7 @@ const SplitFlapText = ({
 
   return (
     <div
+      ref={rootRef}
       className={`split-flap-text ${className}`.trim()}
       style={componentStyle}
       role="text"

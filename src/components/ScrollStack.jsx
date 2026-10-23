@@ -39,9 +39,11 @@ const ScrollStack = ({
 
     const update = () => {
       raf = 0;
+      // read every rect before writing any style, so the pass costs one layout instead of one per card
+      const rects = slots.map((s) => s.getBoundingClientRect());
       for (let i = 0; i < slots.length - 1; i++) {
-        const a = slots[i].getBoundingClientRect();
-        const b = slots[i + 1].getBoundingClientRect();
+        const a = rects[i];
+        const b = rects[i + 1];
         // 0 while the next card is a full card-height away, 1 once it has landed on top
         const t = Math.min(1, Math.max(0, 1 - (b.top - a.top - itemStackDistance) / (a.height || 1)));
         const k = Math.round((1 - t * (1 - (baseScale + i * itemScale))) * 1000) / 1000;
@@ -65,7 +67,7 @@ const ScrollStack = ({
       addEventListener('scroll', onScroll, { passive: true });
       addEventListener('resize', onScroll);
     }
-    update();
+    // no synchronous first pass: the observer fires once on mount and schedules it in a frame
     return () => {
       io.disconnect();
       removeEventListener('scroll', onScroll);

@@ -77,6 +77,8 @@ const InfiniteSpiral = ({
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => {
         visibleRef.current = entry.isIntersecting;
+        // the loop sleeps while off screen; wake it on return
+        if (entry.isIntersecting && !frameId) frameId = requestAnimationFrame(render);
       },
       { threshold: 0.02 }
     );
@@ -153,7 +155,8 @@ const InfiniteSpiral = ({
         onCenterRef.current?.(center);
       }
 
-      frameId = requestAnimationFrame(render);
+      const moving = visibleRef.current || draggingRef.current || Math.abs(autoSpeedRef.current) > 1e-4;
+      frameId = moving ? requestAnimationFrame(render) : 0;
     };
 
     frameId = requestAnimationFrame(render);

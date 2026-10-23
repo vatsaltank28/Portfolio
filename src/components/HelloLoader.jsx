@@ -9,13 +9,10 @@ const GREETINGS = [
   ['你好', 'Chinese'], ['Привет', 'Russian'], ['Merhaba', 'Turkish'], ['Γεια', 'Greek'],
 ]
 
-const pageReady = () =>
-  Promise.all([
-    document.fonts.ready,
-    new Promise((res) => (document.readyState === 'complete' ? res() : addEventListener('load', res, { once: true }))),
-  ])
+// Only fonts gate the reveal: waiting for window 'load' held the page behind every image and video.
+const pageReady = () => document.fonts.ready
 
-export default function HelloLoader({ onDone, speed = 0.45, minDuration = 1800, maxDuration = 8000 }) {
+export default function HelloLoader({ onDone, speed = 0.45, minDuration = 1800, maxDuration = 3000 }) {
   const [i, setI] = useState(0)
   const [visible, setVisible] = useState(true)
 
@@ -24,7 +21,7 @@ export default function HelloLoader({ onDone, speed = 0.45, minDuration = 1800, 
     let live = true
     const finish = () => live && setVisible(false)
     const wait = (ms) => new Promise((res) => setTimeout(res, ms))
-    // keep looping until fonts and assets are in, but never less than a few greetings or more than maxDuration
+    // keep looping until fonts are in, but never less than a few greetings or more than maxDuration
     Promise.race([Promise.all([pageReady(), wait(minDuration)]), wait(maxDuration)]).then(finish)
     return () => {
       live = false
